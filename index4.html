@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LifeOS — Your Personal Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0a0f;
+      --surface:  #12121a;
+      --card:     #1a1a26;
+      --border:   #2a2a3a;
+      --accent:   #7c6aff;
+      --accent2:  #ff6a9e;
+      --accent3:  #6affda;
+      --text:     #e8e8f0;
+      --muted:    #6b6b80;
+      --success:  #4ade80;
+      --warning:  #fbbf24;
+      --danger:   #f87171;
+      --radius:   14px;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--font-head);
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #live-clock {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent3);
+      letter-spacing: 1px;
+    }
+
+    #live-date {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── MAIN GRID ── */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto;
+      gap: 20px;
+      padding: 28px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── CARD BASE ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover::before { opacity: 1; }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title span { font-size: 1rem; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SPAN HELPERS ── */
+    .col-span-2 { grid-column: span 2; }
+    .col-span-3 { grid-column: span 3; }
+
+    /* ── HERO / FOCUS CARD ── */
+    #focus-card {
+      background: linear-gradient(135deg, #14102a 0%, #1a1228 100%);
+      border-color: #3a2a6a;
+    }
+
+    .focus-greeting {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #fff 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .focus-sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .focus-input-wrap {
+      display: flex;
+      gap: 10px;
+    }
+
+    .focus-input-wrap input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .focus-input-wrap input:focus { border-color: var(--accent); }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent), #5a4adf);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      color: #fff;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+    #current-focus {
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: rgba(124,106,255,0.12);
+      border: 1px solid rgba(124,106,255,0.3);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #current-focus .focus-icon { font-size: 1.2rem; }
+
+    /* ── QUOTE CARD ── */
+    #quote-text {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--text);
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    #quote-author {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .refresh-btn {
+      position: absolute;
+      top: 20px; right: 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.4s, color 0.2s;
+    }
+
+    .refresh-btn:hover { color: var(--accent); transform: rotate(180deg); }
+
+    /* ── WEATHER CARD ── */
+    .weather-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .weather-icon { font-size: 3.5rem; line-height: 1; }
+
+    .weather-temp {
+      font-family: var(--font-head);
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .weather-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 2px;
+      text-transform: capitalize;
+    }
+
+    .weather-location {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .weather-details {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .weather-detail-item {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .weather-detail-item strong {
+      color: var(--text);
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    /* ── POMODORO CARD ── */
+    .pomo-display {
+      text-align: center;
+      margin: 10px 0 20px;
+    }
+
+    #pomo-time {
+      font-family: var(--font-head);
+      font-size: 4rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, var(--accent3), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #pomo-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .pomo-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .pomo-progress {
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .pomo-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent3), var(--accent));
+      border-radius: 4px;
+      transition: width 1s linear;
+    }
+
+    .pomo-sessions {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .pomo-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+
+    .pomo-dot.done { background: var(--accent); }
+
+    /* ── HABITS CARD ── */
+    .habit-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .habit-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+
+    .habit-item:hover { background: rgba(255,255,255,0.06); }
+
+    .habit-item.done {
+      background: rgba(74,222,128,0.08);
+      border-color: rgba(74,222,128,0.3);
+    }
+
+    .habit-check {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .habit-item.done .habit-check {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .habit-info { flex: 1; }
+    .habit-name { font-size: 0.9rem; font-weight: 500; }
+    .habit-streak { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+
+    .habit-emoji { font-size: 1.1rem; }
+
+    .add-habit-wrap {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .add-habit-wrap input {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .add-habit-wrap input:focus { border-color: var(--accent); }
+
+    /* ── NOTES CARD ── */
+    #notes-area {
+      width: 100%;
+      min-height: 150px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #notes-area:focus { border-color: var(--accent); }
+
+    .notes-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    #notes-saved {
+      font-size: 0.75rem;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #notes-saved.show { opacity: 1; }
+
+    /* ── MOOD CARD ── */
+    .mood-emojis {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .mood-btn {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      font-size: 1.5rem;
+    }
+
+    .mood-btn:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .mood-btn.selected { border-color: var(--accent2); background: rgba(255,106,158,0.12); }
+
+    .mood-btn small {
+      display: block;
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--font-body);
+    }
+
+    .mood-history { display: flex; gap: 6px; align-items: flex-end; height: 60px; }
+
+    .mood-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .mood-bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(to top, var(--accent), var(--accent2));
+      min-height: 4px;
+      transition: height 0.4s ease;
+    }
+
+    .mood-day-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+    }
+
+    /* ── COUNTDOWN CARD ── */
+    .countdown-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .countdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .countdown-info { flex: 1; }
+    .countdown-name { font-size: 0.9rem; font-weight: 500; }
+    .countdown-date { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    .countdown-days {
+      font-family: var(--font-head);
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent2);
+    }
+
+    .countdown-days small {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-weight: 400;
+      display: block;
+      text-align: right;
+    }
+
+    .countdown-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      margin-left: 12px;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+
+    .countdown-delete:hover { color: var(--danger); }
+
+    .add-countdown-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .add-countdown-wrap input {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .add-countdown-wrap input:focus { border-color: var(--accent); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .dashboard { grid-template-columns: 1fr 1fr; }
+      .col-span-2, .col-span-3 { grid-column: span 2; }
+    }
+
+    @media (max-width: 600px) {
+      .dashboard { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
+      .col-span-2, .col-span-3 { grid-column: span 1; }
+      header { padding: 14px 20px; }
+      .focus-greeting { font-size: 1.5rem; }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 30px; right: 30px;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 0.85rem;
+      color: var(--text);
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ── ANIMATION DELAYS ── */
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.10s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.20s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+    .card:nth-child(6) { animation-delay: 0.30s; }
+    .card:nth-child(7) { animation-delay: 0.35s; }
+    .card:nth-child(8) { animation-delay: 0.40s; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">LifeOS ✦</div>
+  <div class="header-right">
+    <div>
+      <div id="live-clock">00:00:00</div>
+      <div id="live-date">Loading...</div>
+    </div>
+  </div>
+</header>
+
+<!-- DASHBOARD GRID -->
+<div class="dashboard">
+
+  <!-- 1. DAILY FOCUS (col-span-2) -->
+  <div class="card col-span-2" id="focus-card" style="animation-delay:0.05s">
+    <div class="card-title"><span>🎯</span> Daily Focus</div>
+    <div class="focus-greeting" id="greeting">Good morning!</div>
+    <div class="focus-sub">What's your one big thing today?</div>
+    <div class="focus-input-wrap">
+      <input type="text" id="focus-input" placeholder="e.g. Finish the LifeOS dashboard…" maxlength="80"/>
+      <button class="btn" onclick="setFocus()">Set Focus</button>
+    </div>
+    <div id="current-focus">
+      <span class="focus-icon">🔥</span>
+      <span id="focus-text"></span>
+      <button class="btn btn-sm btn-ghost" onclick="clearFocus()" style="margin-left:auto">Clear</button>
+    </div>
+  </div>
+
+  <!-- 2. QUOTE CARD -->
+  <div class="card" style="animation-delay:0.10s">
+    <div class="card-title"><span>💡</span> Daily Spark</div>
+    <button class="refresh-btn" onclick="newQuote()" title="New quote">↻</button>
+    <div id="quote-text">Loading...</div>
+    <div id="quote-author"></div>
+  </div>
+
+  <!-- 3. WEATHER CARD -->
+  <div class="card" style="animation-delay:0.15s">
+    <div class="card-title"><span>🌤</span> Weather</div>
+    <div id="weather-content">
+      <div style="color:var(--muted);font-size:0.85rem">Fetching weather…</div>
+    </div>
+    <button class="btn btn-sm btn-ghost" onclick="loadWeather()" style="margin-top:12px">Refresh</button>
+  </div>
+
+  <!-- 4. POMODORO TIMER -->
+  <div class="card" style="animation-delay:0.20s">
+    <div class="card-title"><span>⏱</span> Pomodoro Timer</div>
+    <div class="pomo-display">
+      <div id="pomo-time">25:00</div>
+      <div id="pomo-label">Focus Session</div>
+    </div>
+    <div class="pomo-controls">
+      <button class="btn btn-sm" id="pomo-start-btn" onclick="togglePomo()">▶ Start</button>
+      <button class="btn btn-sm btn-ghost" onclick="resetPomo()">↺ Reset</button>
+      <button class="btn btn-sm btn-ghost" onclick="skipPomo()">⏭ Skip</button>
+    </div>
+    <div class="pomo-progress">
+      <div class="pomo-progress-bar" id="pomo-bar" style="width:100%"></div>
+    </div>
+    <div class="pomo-sessions" id="pomo-dots"></div>
+  </div>
+
+  <!-- 5. HABIT TRACKER -->
+  <div class="card col-span-2" style="animation-delay:0.25s">
+    <div class="card-title"><span>✅</span> Habit Tracker</div>
+    <div class="habit-list" id="habit-list"></div>
+    <div class="add-habit-wrap">
+      <input type="text" id="new-habit-input" placeholder="Add a new habit…" maxlength="40" onkeydown="if(event.key==='Enter')addHabit()"/>
+      <button class="btn btn-sm" onclick="addHabit()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- 6. QUICK NOTES -->
+  <div class="card col-span-2" style="animation-delay:0.30s">
+    <div class="card-title"><span>📝</span> Quick Notes</div>
+    <textarea id="notes-area" placeholder="Brain dump anything here… it saves automatically."></textarea>
+    <div class="notes-footer">
+      <span id="notes-saved">✓ Saved</span>
+      <button class="btn btn-sm btn-ghost" onclick="clearNotes()">Clear</button>
+    </div>
+  </div>
+
+  <!-- 7. MOOD LOGGER -->
+  <div class="card" style="animation-delay:0.35s">
+    <div class="card-title"><span>🌊</span> Mood Logger</div>
+    <div class="mood-emojis">
+      <button class="mood-btn" data-mood="5" onclick="logMood(5)">😄<small>Great</small></button>
+      <button class="mood-btn" data-mood="4" onclick="logMood(4)">🙂<small>Good</small></button>
+      <button class="mood-btn" data-mood="3" onclick="logMood(3)">😐<small>Okay</small></button>
+      <button class="mood-btn" data-mood="2" onclick="logMood(2)">😕<small>Low</small></button>
+      <button class="mood-btn" data-mood="1" onclick="logMood(1)">😞<small>Rough</small></button>
+    </div>
+    <div class="card-title" style="margin-bottom:8px"><span>📊</span> Last 7 Days</div>
+    <div class="mood-history" id="mood-chart"></div>
+  </div>
+
+  <!-- 8. COUNTDOWN TIMERS -->
+  <div class="card" style="animation-delay:0.40s">
+    <div class="card-title"><span>📅</span> Countdowns</div>
+    <div class="countdown-list" id="countdown-list"></div>
+    <div class="add-countdown-wrap">
+      <input type="text" id="cd-name" placeholder="Event name…" maxlength="30"/>
+      <input type="date" id="cd-date"/>
+      <button class="btn btn-sm" onclick="addCountdown()">+</button>
+    </div>
+  </div>
+
+</div><!-- /dashboard -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const load = k => { try { return JSON.parse(localStorage.getItem(k)); } catch{ return null; } };
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════
+// CLOCK & DATE
+// ════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  $('live-clock').textContent = `${h}:${m}:${s}`;
+  $('live-date').textContent = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const greet = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  $('greeting').textContent = greet + '! 👋';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ════════════════════════════════════════
+// DAILY FOCUS
+// ════════════════════════════════════════
+function setFocus() {
+  const val = $('focus-input').value.trim();
+  if (!val) return;
+  save('lifeos_focus', { text: val, date: new Date().toDateString() });
+  showFocus(val);
+  $('focus-input').value = '';
+  showToast('🎯 Focus set! Go crush it!');
+}
+
+function showFocus(text) {
+  $('focus-text').textContent = text;
+  $('current-focus').style.display = 'flex';
+}
+
+function clearFocus() {
+  localStorage.removeItem('lifeos_focus');
+  $('current-focus').style.display = 'none';
+}
+
+(function initFocus() {
+  const f = load('lifeos_focus');
+  if (f && f.date === new Date().toDateString()) showFocus(f.text);
+})();
+
+// ════════════════════════════════════════
+// QUOTES
+// ════════════════════════════════════════
+const quotes = [
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+  { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+  { text: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+  { text: "Hard work beats talent when talent doesn't work hard.", author: "Tim Notke" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein" },
+  { text: "Your limitation — it's only your imagination.", author: "Unknown" },
+  { text: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+  { text: "Great things never come from comfort zones.", author: "Unknown" },
+];
+
+let lastQuoteIdx = -1;
+function newQuote() {
+  let idx;
+  do { idx = Math.floor(Math.random() * quotes.length); } while (idx === lastQuoteIdx);
+  lastQuoteIdx = idx;
+  $('quote-text').style.opacity = 0;
+  setTimeout(() => {
+    $('quote-text').textContent = `"${quotes[idx].text}"`;
+    $('quote-author').textContent = `— ${quotes[idx].author}`;
+    $('quote-text').style.transition = 'opacity 0.4s';
+    $('quote-text').style.opacity = 1;
+  }, 200);
+}
+newQuote();
+
+// ════════════════════════════════════════
+// WEATHER
+// ════════════════════════════════════════
+async function loadWeather() {
+  const el = $('weather-content');
+  el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">📡 Locating you…</div>';
+
+  if (!navigator.geolocation) {
+    el.innerHTML = '<div style="color:var(--muted)">Geolocation not supported.</div>';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`);
+      const data = await res.json();
+      const c = data.current;
+
+      const weatherMap = {
+        0:'☀️ Clear', 1:'🌤 Mostly Clear', 2:'⛅ Partly Cloudy', 3:'☁️ Overcast',
+        45:'🌫 Foggy', 48:'🌫 Icy Fog', 51:'🌦 Light Drizzle', 53:'🌦 Drizzle',
+        55:'🌧 Heavy Drizzle', 61:'🌧 Light Rain', 63:'🌧 Rain', 65:'🌧 Heavy Rain',
+        71:'🌨 Light Snow', 73:'❄️ Snow', 75:'❄️ Heavy Snow', 80:'🌦 Showers',
+        81:'🌧 Heavy Showers', 82:'⛈ Violent Rain', 95:'⛈ Thunderstorm',
+      };
+
+      const code = c.weather_code;
+      const desc = weatherMap[code] || '🌡 Unknown';
+      const icon = desc.split(' ')[0];
+      const label = desc.split(' ').slice(1).join(' ');
+
+      // Reverse geocode for city name
+      let city = `${lat.toFixed(1)}°, ${lon.toFixed(1)}°`;
+      try {
+        const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+        const gd = await geo.json();
+        city = gd.address?.city || gd.address?.town || gd.address?.village || city;
+      } catch {}
+
+      el.innerHTML = `
+        <div class="weather-location">📍 ${city}</div>
+        <div class="weather-main">
+          <div class="weather-icon">${icon}</div>
+          <div>
+            <div class="weather-temp">${Math.round(c.temperature_2m)}°C</div>
+            <div class="weather-desc">${label}</div>
+          </div>
+        </div>
+        <div class="weather-details">
+          <div class="weather-detail-item"><strong>${c.relative_humidity_2m}%</strong>Humidity</div>
+          <div class="weather-detail-item"><strong>${Math.round(c.wind_speed_10m)} km/h</strong>Wind</div>
+        </div>`;
+    } catch {
+      el.innerHTML = '<div style="color:var(--muted)">Could not load weather.</div>';
+    }
+  }, () => {
+    el.innerHTML = '<div style="color:var(--muted)">Location access denied.</div>';
+  });
+}
+loadWeather();
+
+// ════════════════════════════════════════
+// POMODORO TIMER
+// ════════════════════════════════════════
+const POMO_TIMES = { work: 25*60, short: 5*60, long: 15*60 };
+let pomoState = {
+  mode: 'work',
+  timeLeft: POMO_TIMES.work,
+  running: false,
+  sessions: 0,
+  interval: null,
+};
+
+function renderPomoTime() {
+  const m = String(Math.floor(pomoState.timeLeft / 60)).padStart(2,'0');
+  const s = String(pomoState.timeLeft % 60).padStart(2,'0');
+  $('pomo-time').textContent = `${m}:${s}`;
+
+  const total = POMO_TIMES[pomoState.mode];
+  const pct = (pomoState.timeLeft / total) * 100;
+  $('pomo-bar').style.width = pct + '%';
+
+  const labels = { work: 'Focus Session', short: 'Short Break', long: 'Long Break' };
+  $('pomo-label').textContent = labels[pomoState.mode];
+}
+
+function renderPomoDots() {
+  const dotsEl = $('pomo-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'pomo-dot' + (i < pomoState.sessions ? ' done' : '');
+    dotsEl.appendChild(d);
+  }
+}
+
+function togglePomo() {
+  if (pomoState.running) {
+    clearInterval(pomoState.interval);
+    pomoState.running = false;
+    $('pomo-start-btn').textContent = '▶ Resume';
+  } else {
+    pomoState.running = true;
+    $('pomo-start-btn').textContent = '⏸ Pause';
+    pomoState.interval = setInterval(() => {
+      pomoState.timeLeft--;
+      if (pomoState.timeLeft <= 0) {
+        clearInterval(pomoState.interval);
+        pomoState.running = false;
+        pomoDone();
+      }
+      renderPomoTime();
+    }, 1000);
+  }
+}
+
+function pomoDone() {
+  const bell = new AudioContext();
+  [523, 659, 784].forEach((freq, i) => {
+    const osc = bell.createOscillator();
+    const gain = bell.createGain();
+    osc.connect(gain); gain.connect(bell.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, bell.currentTime + i * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, bell.currentTime + i * 0.2 + 0.8);
+    osc.start(bell.currentTime + i * 0.2);
+    osc.stop(bell.currentTime + i * 0.2 + 0.8);
+  });
+
+  if (pomoState.mode === 'work') {
+    pomoState.sessions = (pomoState.sessions + 1) % 4;
+    const msg = pomoState.sessions === 0 ? '🎉 4 sessions done! Take a long break!' : '✅ Focus done! Take a short break.';
+    showToast(msg);
+    pomoState.mode = pomoState.sessions === 0 ? 'long' : 'short';
+  } else {
+    showToast('⚡ Break over! Time to focus!');
+    pomoState.mode = 'work';
+  }
+  pomoState.timeLeft = POMO_TIMES[pomoState.mode];
+  $('pomo-start-btn').textContent = '▶ Start';
+  renderPomoTime();
+  renderPomoDots();
+}
+
+function resetPomo() {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  pomoState.mode = 'work';
+  pomoState.timeLeft = POMO_TIMES.work;
+  $('pomo-start-btn').textContent = '▶ Start';
+  renderPomoTime();
+}
+
+function skipPomo() {
+  clearInterval(pomoState.interval);
+  pomoState.running = false;
+  pomoDone();
+}
+
+renderPomoTime();
+renderPomoDots();
+
+// ════════════════════════════════════════
+// HABIT TRACKER
+// ════════════════════════════════════════
+const emojis = ['💪','📚','🏃','💧','🧘','🥗','😴','✍️','🎯','🌱'];
+let habits = load('lifeos_habits') || [
+  { id: 1, name: 'Drink 8 glasses of water', emoji: '💧', streak: 0, doneToday: false, lastDate: '' },
+  { id: 2, name: 'Exercise 30 mins', emoji: '🏃', streak: 0, doneToday: false, lastDate: '' },
+  { id: 3, name: 'Read 20 pages', emoji: '📚', streak: 0, doneToday: false, lastDate: '' },
+];
+
+function saveHabits() { save('lifeos_habits', habits); }
+
+function resetHabitsIfNewDay() {
+  const today = new Date().toDateString();
+  habits = habits.map(h => {
+    if (h.doneToday && h.lastDate !== today) {
+      return { ...h, doneToday: false };
+    }
+    if (!h.doneToday && h.lastDate && h.lastDate !== today && h.lastDate !== new Date(Date.now() - 86400000).toDateString()) {
+      return { ...h, streak: 0 };
+    }
+    return h;
+  });
+  saveHabits();
+}
+
+function renderHabits() {
+  const list = $('habit-list');
+  list.innerHTML = '';
+  if (!habits.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:10px">No habits yet. Add one below! 🌱</div>';
+    return;
+  }
+  habits.forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'habit-item' + (h.doneToday ? ' done' : '');
+    div.innerHTML = `
+      <span class="habit-emoji">${h.emoji}</span>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-streak">🔥 ${h.streak} day streak</div>
+      </div>
+      <div class="habit-check">${h.doneToday ? '✓' : ''}</div>
+      <button onclick="removeHabit(${h.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;margin-left:6px" title="Remove">✕</button>`;
+    div.onclick = (e) => { if (!e.target.closest('button[title="Remove"]')) toggleHabit(h.id); };
+    list.appendChild(div);
+  });
+}
+
+function toggleHabit(id) {
+  const today = new Date().toDateString();
+  habits = habits.map(h => {
+    if (h.id !== id) return h;
+    const wasDone = h.doneToday;
+    const newStreak = wasDone ? Math.max(0, h.streak - 1) : h.streak + 1;
+    if (!wasDone) showToast(`🔥 ${h.name} done! Streak: ${newStreak} days`);
+    return { ...h, doneToday: !wasDone, streak: newStreak, lastDate: today };
+  });
+  saveHabits();
+  renderHabits();
+}
+
+function removeHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+  saveHabits();
+  renderHabits();
+}
+
+function addHabit() {
+  const name = $('new-habit-input').value.trim();
+  if (!name) return;
+  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  habits.push({ id: Date.now(), name, emoji, streak: 0, doneToday: false, lastDate: '' });
+  saveHabits();
+  renderHabits();
+  $('new-habit-input').value = '';
+  showToast('✅ Habit added!');
+}
+
+resetHabitsIfNewDay();
+renderHabits();
+
+// ════════════════════════════════════════
+// QUICK NOTES
+// ════════════════════════════════════════
+const notesArea = $('notes-area');
+notesArea.value = load('lifeos_notes') || '';
+
+let notesSaveTimer;
+notesArea.addEventListener('input', () => {
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(() => {
+    save('lifeos_notes', notesArea.value);
+    const saved = $('notes-saved');
+    saved.classList.add('show');
+    setTimeout(() => saved.classList.remove('show'), 2000);
+  }, 800);
+});
+
+function clearNotes() {
+  if (!notesArea.value) return;
+  if (confirm('Clear all notes?')) {
+    notesArea.value = '';
+    localStorage.removeItem('lifeos_notes');
+    showToast('📝 Notes cleared');
+  }
+}
+
+// ════════════════════════════════════════
+// MOOD LOGGER
+// ════════════════════════════════════════
+let moodLog = load('lifeos_mood') || {};
+
+function logMood(val) {
+  const today = new Date().toDateString();
+  moodLog[today] = val;
+  save('lifeos_mood', moodLog);
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`.mood-btn[data-mood="${val}"]`).classList.add('selected');
+  renderMoodChart();
+  showToast('🌊 Mood logged!');
+}
+
+function renderMoodChart() {
+  const chart = $('mood-chart');
+  chart.innerHTML = '';
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push(d.toDateString());
+  }
+  days.forEach(dateStr => {
+    const val = moodLog[dateStr] || 0;
+    const wrap = document.createElement('div');
+    wrap.className = 'mood-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'mood-bar';
+    bar.style.height = val ? (val / 5 * 48) + 'px' : '4px';
+    bar.title = val ? `Mood: ${val}/5` : 'No data';
+    const label = document.createElement('div');
+    label.className = 'mood-day-label';
+    label.textContent = new Date(dateStr).toLocaleDateString('en-US',{weekday:'narrow'});
+    wrap.appendChild(bar);
+    wrap.appendChild(label);
+    chart.appendChild(wrap);
+  });
+
+  // Mark today's mood
+  const todayMood = moodLog[new Date().toDateString()];
+  if (todayMood) {
+    document.querySelector(`.mood-btn[data-mood="${todayMood}"]`)?.classList.add('selected');
+  }
+}
+
+renderMoodChart();
+
+// ════════════════════════════════════════
+// COUNTDOWN TIMERS
+// ════════════════════════════════════════
+let countdowns = load('lifeos_countdowns') || [];
+
+function renderCountdowns() {
+  const list = $('countdown-list');
+  list.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (!countdowns.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:10px">No countdowns yet. Add an event! 📅</div>';
+    return;
+  }
+  countdowns.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(cd => {
+    const diff = Math.ceil((new Date(cd.date) - today) / 86400000);
+    const div = document.createElement('div');
+    div.className = 'countdown-item';
+    div.innerHTML = `
+      <div class="countdown-info">
+        <div class="countdown-name">${cd.name}</div>
+        <div class="countdown-date">${new Date(cd.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      </div>
+      <div class="countdown-days">
+        ${diff > 0 ? diff : diff === 0 ? '🎉' : '✓'}
+        <small>${diff > 0 ? 'days left' : diff === 0 ? 'Today!' : 'Passed'}</small>
+      </div>
+      <button class="countdown-delete" onclick="removeCountdown('${cd.id}')" title="Delete">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+function addCountdown() {
+  const name = $('cd-name').value.trim();
+  const date = $('cd-date').value;
+  if (!name || !date) return showToast('⚠️ Enter a name and date');
+  countdowns.push({ id: Date.now().toString(), name, date });
+  save('lifeos_countdowns', countdowns);
+  renderCountdowns();
+  $('cd-name').value = '';
+  $('cd-date').value = '';
+  showToast('📅 Countdown added!');
+}
+
+function removeCountdown(id) {
+  countdowns = countdowns.filter(c => c.id !== id);
+  save('lifeos_countdowns', countdowns);
+  renderCountdowns();
+}
+
+renderCountdowns();
+// Auto-refresh countdowns every minute
+setInterval(renderCountdowns, 60000);
+</script>
+</body>
+</html>
